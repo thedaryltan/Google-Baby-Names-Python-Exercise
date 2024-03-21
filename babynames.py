@@ -6,8 +6,10 @@
 # Google's Python Class
 # http://code.google.com/edu/languages/google-python-class/
 
-import sys
+
+import argparse
 import re
+
 
 def extract_names(filename):
     """
@@ -18,8 +20,14 @@ def extract_names(filename):
     print the year at the top, then on each new line
     print the names and rank in alphabetical order
     """
-    with open(filename, 'r') as f:
-        file_text = f.read()
+    try:
+        with open(filename, 'r') as f:
+            file_text = f.read()
+    except FileNotFoundError:
+        raise FileNotFoundError("The file you provided does not exist.")
+    except UnicodeDecodeError:
+        print("The file you provided is not a valid HTML file.")
+        exit(1)
     year_match = re.search(r'Popularity\sin\s(\d{4})', file_text)
     names_match = re.findall(r"<td>(\d+)</td><td>(\w+)"
                              r"</td><td>(\w+)</td>",
@@ -34,40 +42,69 @@ def extract_names(filename):
             ranked_name_dict[girl_name] = name_rank
     for name in sorted(ranked_name_dict):
         text_to_print.append(name + ' ' + ranked_name_dict[name])
-    print("\n".join(text_to_print))
-    return
+    return "\n".join(text_to_print)
+
 
 def get_user_filename():
-    filename = input("Key in the filepath of the HTML file you wish to use: ")
-    return filename
+    """
+    this function handles the user input for the filename and the
+    --summaryfile flag
+    returns args.filename as a string and args.summaryfile as a boolean
+    """
+    parser = argparse.ArgumentParser(
+        prog='calculator',
+        description='runs mathematical operations on two numbers')
+    parser.add_argument('filename', type=str, metavar='filename',
+                        help="provide the filename of the file you wish to "
+                             "parse")
+
+    parser.add_argument('--summaryfile', action='store_true',
+                        required=False, help="use this flag if want the "
+                                             "results to be written into a "
+                                             "summary file")
+    args = parser.parse_args()
+    if args.filename[-5::].lower() != ".html":
+        raise ValueError("The filename you provide must end in .html")
+    return args.filename, args.summaryfile
+
+
+def write_to_file(filename, new_file_text):
+    """
+    receives the original filename and the new_file_text that should be
+    written into the new file
+    creates a new file at the same location as the original file with
+    .summary appended to the name and the summarised text as content
+    """
+    new_file_name = filename + ".summary"
+    with open(new_file_name, "w") as f:
+        f.write(new_file_text)
+
+
+def display_result(new_file_text):
+    """
+    receives the new_file_text string which is the summary of the HTML file
+    prints it for the user
+    """
+    print(new_file_text)
+
 
 def _run_extract_names():
-    filename = get_user_filename()
-    extract_names(filename)
+    """
+    called by the main function to run the functions
+    calls on get_user_filename for userinput
+    calls on extract_names to parse the HTML file and format the content
+    calls on write_to_file to create the new file with the new content
+    calls on display_result to print the results to the user
+    """
+    filename, summary_file = get_user_filename()
+    new_file_text = extract_names(filename)
+    if summary_file is True:
+        write_to_file(filename, new_file_text)
+    display_result(new_file_text)
 
 
 def main():
     _run_extract_names()
-
-
-    # This command-line parsing code is provided.
-    # Make a list of command line arguments, omitting the [0] element
-    # which is the script itself.
-    # args = sys.argv[1:]
-    #
-    # if not args:
-    #     print('usage: [--summaryfile] file [file ...]')
-    #     sys.exit(1)
-
-    # Notice the summary flag and remove it from args if it is present.
-    # summary = False
-    # if args[0] == '--summaryfile':
-    #     summary = True
-    #     del args[0]
-
-    # +++your code here+++
-    # For each filename, get the names, then either print the text output
-    # or write it to a summary file
 
 
 if __name__ == '__main__':
